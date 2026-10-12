@@ -1,0 +1,908 @@
+/* =========================================================
+   Tableau de bord foot — styles
+   ========================================================= */
+
+/* ---------- 1. Thèmes (un par onglet principal) ---------- */
+
+/* Valeurs communes à tous les thèmes */
+:root {
+  --texte: #EEF2F8;
+  --texte-secondaire: #A9B3C4;
+
+  /* Couleurs de forme : victoire, nul, défaite */
+  --victoire: #34D399;
+  --nul: #A9B3C4;
+  --defaite: #F87171;
+
+  --police-titre: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --police-texte: "Barlow", system-ui, sans-serif;
+
+  --rayon-petit: 12px;
+  --rayon: 14px;
+  --rayon-grand: 16px;
+
+  /* Durée de la transition entre deux thèmes */
+  --transition-theme: background-color .45s ease, border-color .45s ease, color .45s ease;
+}
+
+/* Mes clubs (aussi le thème par défaut) */
+:root,
+body[data-theme="mes-clubs"] {
+  --fond: #0E1726;
+  --surface: #16223A;
+  --bordure: #2A3A57;
+  --accent: #7CC3EE;
+  --texte-sur-accent: #0E1726;
+  --surlignage: #22355A;
+}
+
+body[data-theme="ligue1"] {
+  --fond: #0F1012;
+  --surface: #1A1C20;
+  --bordure: #2E3138;
+  --accent: #C8F04A;
+  --texte-sur-accent: #0F1012;
+  --surlignage: #2B3320;
+}
+
+body[data-theme="laliga"] {
+  --fond: #170F12;
+  --surface: #241A1D;
+  --bordure: #3D2C31;
+  --accent: #FF5A4F;
+  --texte-sur-accent: #170F12;
+  --surlignage: #3D2226;
+}
+
+body[data-theme="ldc"] {
+  --fond: #061A3A;
+  --surface: #0C2650;
+  --bordure: #1F3E70;
+  --accent: #3FD5F5;
+  --texte-sur-accent: #061A3A;
+  --surlignage: #163B73;
+}
+
+
+/* ---------- 2. Bases ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* L'attribut hidden doit toujours cacher, même si on a mis display:flex */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--fond);
+  color: var(--texte);
+  font-family: var(--police-texte);
+  font-size: 16px;
+  line-height: 1.45;
+  transition: var(--transition-theme);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Texte lu par les lecteurs d'écran mais invisible à l'écran */
+.visuellement-cache {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.message {
+  padding: 20px;
+  color: var(--texte-secondaire);
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+}
+
+
+/* ---------- 3. En-tête et onglets principaux ---------- */
+
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--fond);
+  border-bottom: 1px solid var(--bordure);
+  transition: var(--transition-theme);
+}
+
+.entete-interieur {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.marque {
+  font-family: var(--police-titre);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.marque span {
+  color: var(--accent);
+  transition: var(--transition-theme);
+}
+
+.onglets {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background-color: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  transition: var(--transition-theme);
+}
+
+.onglet {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background-color: transparent;
+  color: var(--texte-secondaire);
+  font-family: var(--police-titre);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: var(--transition-theme);
+}
+
+.onglet:hover {
+  color: var(--texte);
+}
+
+.onglet[aria-current="page"] {
+  background-color: var(--accent);
+  color: var(--texte-sur-accent);
+}
+
+/* Libellé court "Champions" réservé au téléphone */
+.libelle-court {
+  display: none;
+}
+
+
+/* ---------- 4. Page, titre et sous-onglets ---------- */
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 24px 56px;
+}
+
+.titre-section h1 {
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  letter-spacing: .01em;
+  text-transform: uppercase;
+}
+
+.sous-titre {
+  margin-top: 4px;
+  color: var(--texte-secondaire);
+}
+
+.sous-onglets {
+  display: flex;
+  gap: 4px;
+  margin-top: 20px;
+  border-bottom: 1px solid var(--bordure);
+  transition: var(--transition-theme);
+}
+
+.sous-onglet {
+  min-height: 44px;
+  margin-bottom: -1px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--texte-secondaire);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: var(--transition-theme);
+}
+
+.sous-onglet:hover {
+  color: var(--texte);
+}
+
+.sous-onglet[aria-current="page"] {
+  color: var(--texte);
+  border-bottom-color: var(--accent);
+}
+
+.contenu {
+  margin-top: 24px;
+}
+
+
+/* ---------- 5. Éléments communs ---------- */
+
+.carte {
+  background-color: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  padding: 20px;
+  transition: var(--transition-theme);
+}
+
+/* Petit titre en capitales au-dessus d'un bloc */
+.bloc-titre {
+  margin-bottom: 8px;
+  font-family: var(--police-texte);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--texte-secondaire);
+}
+
+.bouton {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--rayon-petit);
+  background-color: var(--accent);
+  color: var(--texte-sur-accent);
+  font-family: var(--police-titre);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  transition: filter .2s ease;
+}
+
+.bouton:hover {
+  filter: brightness(1.1);
+}
+
+/* Point de couleur (places européennes) */
+.point-zone {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background-color: var(--couleur-zone, transparent);
+  vertical-align: middle;
+}
+
+
+/* ---------- 6. Écran "Mes clubs" ---------- */
+
+.grille-clubs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+}
+
+/* Chaque carte prend la couleur d'accent de son championnat */
+.carte-club[data-championnat="ligue1"] {
+  --accent-club: #C8F04A;
+  --texte-sur-accent-club: #0F1012;
+}
+
+.carte-club[data-championnat="laliga"] {
+  --accent-club: #FF5A4F;
+  --texte-sur-accent-club: #170F12;
+}
+
+.carte-club {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.carte-entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.carte-nom {
+  font-size: 2rem;
+  text-transform: uppercase;
+}
+
+.pastille-championnat {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: var(--accent-club);
+  color: var(--texte-sur-accent-club);
+  font-family: var(--police-titre);
+  font-size: .9rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.prochain-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: var(--fond);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-petit);
+  transition: var(--transition-theme);
+}
+
+.lieu {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--bordure);
+  border-radius: 999px;
+  color: var(--texte-secondaire);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.adversaire {
+  margin-top: 6px;
+  font-family: var(--police-titre);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.date-match {
+  margin-top: 2px;
+  color: var(--texte-secondaire);
+  font-size: .95rem;
+}
+
+.compte-a-rebours {
+  flex: none;
+  font-family: var(--police-titre);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-club);
+}
+
+.forme {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.forme li {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: #0B0F17;
+  font-family: var(--police-titre);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.forme-V { background-color: var(--victoire); }
+.forme-N { background-color: var(--nul); }
+.forme-D { background-color: var(--defaite); }
+
+.legende-forme {
+  margin-top: 6px;
+  color: var(--texte-secondaire);
+  font-size: .8rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat {
+  padding: 12px 16px;
+  background-color: var(--fond);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-petit);
+  transition: var(--transition-theme);
+}
+
+.stat-valeur {
+  display: block;
+  font-family: var(--police-titre);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-valeur sup {
+  font-size: .45em;
+  vertical-align: super;
+}
+
+.stat-libelle {
+  color: var(--texte-secondaire);
+  font-size: .85rem;
+}
+
+/* Le bouton de la carte prend l'accent du championnat du club */
+.carte-club .bouton {
+  margin-top: auto;
+  background-color: var(--accent-club);
+  color: var(--texte-sur-accent-club);
+}
+
+
+/* ---------- 7. Classement ---------- */
+
+/* Le tableau défile horizontalement s'il est trop large */
+.tableau-defilant {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  transition: var(--transition-theme);
+}
+
+.classement {
+  width: 100%;
+  min-width: 540px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.classement th {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--bordure);
+  color: var(--texte-secondaire);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.classement abbr {
+  text-decoration: none;
+}
+
+.classement td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--bordure);
+  text-align: center;
+  transition: var(--transition-theme);
+}
+
+.classement tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.classement .col-pos {
+  width: 56px;
+  padding-left: 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.classement .col-club {
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Colonnes de chiffres : un peu d'air pour bien les distinguer */
+.classement th:not(.col-pos):not(.col-club),
+.classement td:not(.col-pos):not(.col-club) {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+/* "#" et "Club" restent visibles quand le tableau défile horizontalement */
+.classement .col-pos,
+.classement .col-club {
+  position: sticky;
+  z-index: 1;
+  background-color: var(--surface);
+}
+
+.classement .col-pos {
+  left: 0;
+}
+
+.classement .col-club {
+  left: 56px;
+  min-width: 130px;
+}
+
+.classement .col-pts {
+  padding-right: 16px;
+}
+
+.classement td.col-pts {
+  font-family: var(--police-titre);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* Ligne du club suivi */
+.classement .ligne-suivie td {
+  background-color: var(--surlignage);
+}
+
+.ligne-suivie td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.ligne-suivie .col-club {
+  font-weight: 700;
+}
+
+.legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 14px 4px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--texte-secondaire);
+  font-size: .9rem;
+}
+
+.legende li {
+  display: flex;
+  align-items: center;
+}
+
+.repere-suivi {
+  display: inline-block;
+  width: 16px;
+  height: 11px;
+  margin-right: 8px;
+  border-radius: 3px;
+  border-left: 3px solid var(--accent);
+  background-color: var(--surlignage);
+}
+
+
+/* ---------- 8. Résultats et calendrier ---------- */
+
+/* Sur grand écran, les listes restent assez étroites pour bien se lire */
+.groupe-matchs,
+.liste-buteurs {
+  max-width: 780px;
+}
+
+.groupe-matchs + .groupe-matchs {
+  margin-top: 32px;
+}
+
+.groupe-titre {
+  font-size: 1.5rem;
+  text-transform: uppercase;
+}
+
+.jour-titre {
+  margin: 16px 0 8px;
+  font-family: var(--police-texte);
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--texte-secondaire);
+}
+
+.liste-matchs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  background-color: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  transition: var(--transition-theme);
+}
+
+/* Une ligne : Domicile | score | Extérieur */
+.match {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bordure);
+  transition: var(--transition-theme);
+}
+
+.match:last-child {
+  border-bottom: 0;
+}
+
+.match-suivi {
+  background-color: var(--surlignage);
+}
+
+.equipe {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.domicile {
+  text-align: right;
+}
+
+.gagnant {
+  font-weight: 700;
+}
+
+.perdant {
+  color: var(--texte-secondaire);
+}
+
+.score {
+  min-width: 76px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background-color: var(--fond);
+  font-family: var(--police-titre);
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition: var(--transition-theme);
+}
+
+.score .tiret {
+  margin: 0 6px;
+  color: var(--texte-secondaire);
+}
+
+.score.heure {
+  color: var(--accent);
+}
+
+
+/* ---------- 9. Buteurs ---------- */
+
+.liste-buteurs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  background-color: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  transition: var(--transition-theme);
+}
+
+.buteur {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bordure);
+  transition: var(--transition-theme);
+}
+
+.buteur:last-child {
+  border-bottom: 0;
+}
+
+.rang {
+  font-family: var(--police-titre);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--texte-secondaire);
+}
+
+.buteur:first-child .rang {
+  color: var(--accent);
+}
+
+.joueur-nom {
+  font-weight: 600;
+}
+
+.joueur-club {
+  display: block;
+  color: var(--texte-secondaire);
+  font-size: .9rem;
+}
+
+.buts {
+  font-family: var(--police-titre);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.buts small {
+  margin-left: 4px;
+  color: var(--texte-secondaire);
+  font-family: var(--police-texte);
+  font-size: .8rem;
+  font-weight: 500;
+}
+
+
+/* ---------- 10. Téléphone (moins de 700 px de large) ---------- */
+
+@media (max-width: 699px) {
+  .entete-interieur {
+    padding: 12px 16px;
+  }
+
+  /* Les onglets principaux deviennent une barre fixée en bas */
+  .onglets {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    gap: 4px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid var(--bordure);
+    border-radius: 0;
+  }
+
+  .onglet {
+    flex: 1 1 0;
+    min-height: 52px;
+    padding: 0 4px;
+    border-radius: var(--rayon-petit);
+    font-size: 1rem;
+  }
+
+  .libelle-long {
+    display: none;
+  }
+
+  .libelle-court {
+    display: inline;
+  }
+
+  /* Place libre en bas pour ne pas passer sous la barre d'onglets */
+  .page {
+    padding: 20px 16px calc(100px + env(safe-area-inset-bottom));
+  }
+
+  /* Les sous-onglets deviennent des pastilles qui défilent horizontalement */
+  .sous-onglets {
+    gap: 8px;
+    margin: 16px -16px 0;
+    padding: 0 16px;
+    border-bottom: 0;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .sous-onglets::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sous-onglet {
+    flex: none;
+    margin: 0;
+    padding: 0 18px;
+    border: 1px solid var(--bordure);
+    border-radius: 999px;
+    background-color: var(--surface);
+    scroll-snap-align: start;
+  }
+
+  .sous-onglet[aria-current="page"] {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--texte-sur-accent);
+  }
+
+  .contenu {
+    margin-top: 20px;
+  }
+
+  .classement {
+    min-width: 0;
+  }
+
+  .classement th:not(.col-pos):not(.col-club),
+  .classement td:not(.col-pos):not(.col-club) {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .classement .col-pos {
+    width: 48px;
+    padding-left: 12px;
+  }
+
+  .classement .col-club {
+    left: 48px;
+    min-width: 120px;
+  }
+
+  .carte {
+    padding: 16px;
+  }
+
+  .carte-nom {
+    font-size: 1.75rem;
+  }
+
+  .match {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .score {
+    min-width: 64px;
+    padding: 4px 8px;
+    font-size: 1.25rem;
+  }
+}
+
+/* Pas d'animations si la personne les a désactivées dans son système */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}

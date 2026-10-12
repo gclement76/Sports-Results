@@ -1,0 +1,4 @@
+# Jamais de notes ni de fichiers Claude sur GitHub
+*.md
+.claude/
+
