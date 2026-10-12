@@ -507,24 +507,35 @@ function construireListeMatchs(matchs, championnat, avecScore) {
   }).join("");
 }
 
-// Résultats : uniquement la dernière journée jouée (celle du match terminé le plus récent)
+// Résultats : uniquement la dernière journée jouée
 function construireResultats(donnees, championnat) {
   const termines = trierParDate(donnees.matches.filter(estTermine));
   if (termines.length === 0) {
     return '<p class="message">Aucun résultat pour le moment.</p>';
   }
-  const derniereJournee = libelleJournee(termines[termines.length - 1]);
-  const matchs = termines.filter((m) => libelleJournee(m) === derniereJournee);
+  // Phase du match terminé le plus récent (championnat, phase de ligue, quarts...)
+  const phase = termines[termines.length - 1].stage;
+  const memePhase = termines.filter((m) => m.stage === phase);
+  // La journée la plus avancée de cette phase (un match reporté joué en retard ne compte pas)
+  const numeros = memePhase.map((m) => m.matchday).filter((n) => n != null);
+  const matchs = numeros.length > 0
+    ? memePhase.filter((m) => m.matchday === Math.max(...numeros))
+    : memePhase;
   return construireListeMatchs(matchs, championnat, true);
 }
 
-// Calendrier : les prochains matchs
+// Nombre de journées affichées dans le calendrier
+const JOURNEES_CALENDRIER = 2;
+
+// Calendrier : les matchs des prochaines journées
 function construireCalendrier(donnees, championnat) {
   const aVenir = trierParDate(donnees.matches.filter(estAVenir));
   if (aVenir.length === 0) {
     return '<p class="message">Aucun match programmé.</p>';
   }
-  return construireListeMatchs(aVenir, championnat, false);
+  const journees = [...new Set(aVenir.map(libelleJournee))].slice(0, JOURNEES_CALENDRIER);
+  const matchs = aVenir.filter((m) => journees.includes(libelleJournee(m)));
+  return construireListeMatchs(matchs, championnat, false);
 }
 
 // Buteurs : le top 5

@@ -126,7 +126,8 @@ def main():
     contenu = (
         "/* Fichier généré automatiquement par scripts/mettre_a_jour.py : ne pas modifier à la main. */\n"
         "window.DONNEES_API = "
-        + json.dumps(donnees, ensure_ascii=False, indent=1)
+        # Écriture compacte (sans espaces) : fichier plus léger à télécharger
+        + json.dumps(donnees, ensure_ascii=False, separators=(",", ":"))
         + ";\n"
     )
     with open(FICHIER_SORTIE, "w", encoding="utf-8", newline="\n") as fichier:
