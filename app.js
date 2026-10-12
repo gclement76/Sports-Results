@@ -62,12 +62,14 @@ const SOUS_ONGLETS = {
 // On garde les données déjà chargées pour ne pas les redemander
 const cacheDonnees = {};
 
-// SEULE fonction à remplacer pour brancher l'API football-data.org.
-// Elle renvoie une promesse (Promise) contenant { season, standings, matches, scorers }.
+// Renvoie une promesse (Promise) contenant { season, standings, matches, scorers }.
+// Priorité aux vraies données (data/donnees.js, mises à jour par GitHub Actions),
+// sinon les données fictives (data/exemple.js).
 function chargerDonnees(code) {
   if (!cacheDonnees[code]) {
     cacheDonnees[code] = new Promise((resoudre, rejeter) => {
-      const donnees = window.DONNEES_EXEMPLE && window.DONNEES_EXEMPLE[code];
+      const donnees = (window.DONNEES_API && window.DONNEES_API[code])
+        || (window.DONNEES_EXEMPLE && window.DONNEES_EXEMPLE[code]);
       if (donnees) {
         resoudre(donnees);
       } else {
@@ -472,9 +474,24 @@ function construireLigneMatch(m, championnat, avecScore) {
     </li>`;
 }
 
-// Liste de matchs groupée par journée, puis par jour
+// Noms des tours à élimination directe (ces matchs n'ont pas de numéro de journée)
+const LIBELLES_TOURS = {
+  PLAYOFFS: "Barrages",
+  LAST_16: "Huitièmes de finale",
+  QUARTER_FINALS: "Quarts de finale",
+  SEMI_FINALS: "Demi-finales",
+  FINAL: "Finale"
+};
+
+// "Journée 9", ou le nom du tour ("Quarts de finale")
+function libelleJournee(match) {
+  if (match.matchday != null) return "Journée " + match.matchday;
+  return LIBELLES_TOURS[match.stage] || match.stage || "Match";
+}
+
+// Liste de matchs groupée par journée (ou tour), puis par jour
 function construireListeMatchs(matchs, championnat, avecScore) {
-  const parJournee = grouper(matchs, (m) => m.matchday);
+  const parJournee = grouper(matchs, libelleJournee);
   return parJournee.map(([journee, matchsJournee]) => {
     const parJour = grouper(matchsJournee, (m) => new Date(m.utcDate).toDateString());
     const jours = parJour.map(([, matchsDuJour]) => `
@@ -484,20 +501,20 @@ function construireListeMatchs(matchs, championnat, avecScore) {
       </ul>`).join("");
     return `
       <section class="groupe-matchs">
-        <h2 class="groupe-titre">Journée ${journee}</h2>
+        <h2 class="groupe-titre">${echapper(journee)}</h2>
         ${jours}
       </section>`;
   }).join("");
 }
 
-// Résultats : uniquement la dernière journée jouée
+// Résultats : uniquement la dernière journée jouée (celle du match terminé le plus récent)
 function construireResultats(donnees, championnat) {
-  const termines = donnees.matches.filter(estTermine);
+  const termines = trierParDate(donnees.matches.filter(estTermine));
   if (termines.length === 0) {
     return '<p class="message">Aucun résultat pour le moment.</p>';
   }
-  const derniereJournee = Math.max(...termines.map((m) => m.matchday));
-  const matchs = trierParDate(termines.filter((m) => m.matchday === derniereJournee));
+  const derniereJournee = libelleJournee(termines[termines.length - 1]);
+  const matchs = termines.filter((m) => libelleJournee(m) === derniereJournee);
   return construireListeMatchs(matchs, championnat, true);
 }
 

@@ -1,0 +1,32 @@
+# Met à jour data/donnees.js toutes les heures à partir de football-data.org
+name: Mise à jour des données
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # toutes les heures, à la 17e minute (heure UTC)
+  workflow_dispatch:         # bouton "Run workflow" pour lancer à la main
+
+permissions:
+  contents: write            # autorise l'enregistrement du fichier dans le dépôt
+
+# Jamais deux mises à jour en même temps
+concurrency: mise-a-jour
+
+jobs:
+  mise-a-jour:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Télécharger les données
+        run: python3 scripts/mettre_a_jour.py
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+
+      - name: Enregistrer si quelque chose a changé
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898900+github-actions[bot]@users.noreply.github.com"
+          if [ -f data/donnees.js ]; then git add data/donnees.js; fi
+          git diff --cached --quiet || (git commit -m "Mise à jour des données" && git push)

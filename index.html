@@ -13,8 +13,11 @@
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- 1) les données fictives, 2) le programme. "defer" = exécutés une fois la page lue, dans cet ordre -->
+  <!-- 1) les données fictives, 2) les vraies données (créées par la mise à jour automatique),
+       3) le programme. "defer" = exécutés une fois la page lue, dans cet ordre.
+       Si donnees.js n'existe pas encore, la page utilise les données fictives. -->
   <script src="data/exemple.js" defer></script>
+  <script src="data/donnees.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 
