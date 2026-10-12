@@ -1,4 +1,4 @@
-# Met à jour data/donnees.js toutes les heures à partir de football-data.org
+# Met à jour data/donnees.js (football-data.org) et data/f1.js (Jolpica) toutes les heures
 name: Mise à jour des données
 
 on:
@@ -25,8 +25,11 @@ jobs:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
 
       - name: Enregistrer si quelque chose a changé
+        # Même si l'étape précédente a échoué à moitié (ex. F1 en panne, foot à jour)
+        if: ${{ !cancelled() }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898900+github-actions[bot]@users.noreply.github.com"
           if [ -f data/donnees.js ]; then git add data/donnees.js; fi
+          if [ -f data/f1.js ]; then git add data/f1.js; fi
           git diff --cached --quiet || (git commit -m "Mise à jour des données" && git push)

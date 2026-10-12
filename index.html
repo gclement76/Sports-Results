@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <!-- viewport-fit=cover : permet de gérer la zone du bas des téléphones (barre de geste) -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Tableau de bord foot</title>
+  <title>Tableau de bord sport</title>
 
   <!-- Polices Google Fonts : Barlow (texte) et Barlow Condensed (titres, chiffres) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,11 +13,12 @@
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- 1) les données fictives, 2) les vraies données (créées par la mise à jour automatique),
-       3) le programme. "defer" = exécutés une fois la page lue, dans cet ordre.
+  <!-- 1) les données fictives, 2) les vraies données foot et F1 (créées par la mise à jour
+       automatique), 3) le programme. "defer" = exécutés une fois la page lue, dans cet ordre.
        Si donnees.js n'existe pas encore, la page utilise les données fictives. -->
   <script src="data/exemple.js" defer></script>
   <script src="data/donnees.js" defer></script>
+  <script src="data/f1.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 
@@ -26,7 +27,7 @@
 
   <header class="entete">
     <div class="entete-interieur">
-      <p class="marque">Tableau de bord <span>foot</span></p>
+      <p class="marque">Tableau de bord <span>sport</span></p>
 
       <!-- Onglets principaux (barre fixée en bas sur téléphone) -->
       <nav class="onglets" aria-label="Sections principales">
@@ -37,6 +38,7 @@
           <span class="libelle-long">Ligue des champions</span>
           <span class="libelle-court">Champions</span>
         </button>
+        <button type="button" class="onglet" data-onglet="f1">F1</button>
       </nav>
     </div>
   </header>
@@ -47,13 +49,9 @@
       <p id="sous-titre" class="sous-titre"></p>
     </div>
 
-    <!-- Sous-onglets des championnats (cachés sur "Mes clubs") -->
-    <nav class="sous-onglets" aria-label="Rubriques du championnat" hidden>
-      <button type="button" class="sous-onglet" data-sous-onglet="classement">Classement</button>
-      <button type="button" class="sous-onglet" data-sous-onglet="resultats">Résultats</button>
-      <button type="button" class="sous-onglet" data-sous-onglet="calendrier">Calendrier</button>
-      <button type="button" class="sous-onglet" data-sous-onglet="buteurs">Buteurs</button>
-    </nav>
+    <!-- Sous-onglets (Classement, Résultats...) : boutons créés par app.js selon l'onglet,
+         cachés sur "Mes clubs" -->
+    <nav class="sous-onglets" aria-label="Rubriques" hidden></nav>
 
     <!-- Zone remplie par app.js selon l'onglet choisi -->
     <div id="contenu" class="contenu"></div>

@@ -1,5 +1,5 @@
 /* =========================================================
-   Tableau de bord foot — styles
+   Tableau de bord sport — styles
    ========================================================= */
 
 /* ---------- 1. Thèmes (un par onglet principal) ---------- */
@@ -61,6 +61,15 @@ body[data-theme="ldc"] {
   --accent: #3FD5F5;
   --texte-sur-accent: #061A3A;
   --surlignage: #163B73;
+}
+
+body[data-theme="f1"] {
+  --fond: #15151E;
+  --surface: #1F1F2B;
+  --bordure: #34344A;
+  --accent: #FF3B30;
+  --texte-sur-accent: #15151E;
+  --surlignage: #3A2028;
 }
 
 
@@ -781,7 +790,174 @@ button {
 }
 
 
-/* ---------- 10. Téléphone (moins de 700 px de large) ---------- */
+/* ---------- 10. Formule 1 ---------- */
+
+.bloc-f1 {
+  max-width: 780px;
+}
+
+.entete-gp {
+  margin-bottom: 16px;
+}
+
+.entete-gp .groupe-titre {
+  margin-top: 8px;
+}
+
+/* Même allure que la liste des buteurs */
+.liste-f1 {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  background-color: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  transition: var(--transition-theme);
+}
+
+/* Une ligne : rang | pilote et écurie | écart et points */
+.ligne-f1 {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bordure);
+  transition: var(--transition-theme);
+}
+
+.ligne-f1:last-child {
+  border-bottom: 0;
+}
+
+/* Le podium (et le leader du championnat) en couleur */
+.ligne-f1.podium .rang,
+.liste-f1 .ligne-f1:first-child .rang {
+  color: var(--accent);
+}
+
+.non-classe .joueur-nom {
+  color: var(--texte-secondaire);
+  font-weight: 500;
+}
+
+/* Petite barre à la couleur de l'écurie */
+.barre-ecurie {
+  display: inline-block;
+  width: 4px;
+  height: .95em;
+  margin-right: 7px;
+  border-radius: 2px;
+  background-color: var(--couleur-ecurie);
+  vertical-align: -2px;
+}
+
+.droite-f1 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ecart {
+  font-variant-numeric: tabular-nums;
+}
+
+.non-classe .ecart {
+  color: var(--texte-secondaire);
+}
+
+.points-course {
+  color: var(--accent);
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+/* Carte du prochain Grand Prix */
+.carte-gp {
+  --accent-club: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.carte-gp .lieu + .lieu {
+  margin-left: 4px;
+}
+
+.carte-gp .carte-nom {
+  margin-top: 8px;
+}
+
+.liste-seances {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  background-color: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  transition: var(--transition-theme);
+}
+
+.seance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bordure);
+  transition: var(--transition-theme);
+}
+
+.seance:last-child {
+  border-bottom: 0;
+}
+
+.seance-heure {
+  font-family: var(--police-titre);
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.seance-course .seance-nom {
+  font-weight: 700;
+}
+
+/* La prochaine séance est surlignée */
+.seance-suivante,
+.seance-en-cours {
+  background-color: var(--surlignage);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Séance terminée ou horaire inconnu : en retrait */
+.seance-passee .seance-nom,
+.seance-passee .seance-heure,
+.seance-inconnue {
+  color: var(--texte-secondaire);
+}
+
+.seance-passee .seance-heure,
+.seance-inconnue {
+  font-family: var(--police-texte);
+  font-size: .9rem;
+  font-weight: 500;
+}
+
+.bloc-f1 > .legende-forme {
+  margin-top: 12px;
+}
+
+
+/* ---------- 11. Téléphone (moins de 700 px de large) ---------- */
 
 @media (max-width: 699px) {
   .entete-interieur {
@@ -804,10 +980,12 @@ button {
 
   .onglet {
     flex: 1 1 0;
+    min-width: 0;
     min-height: 52px;
-    padding: 0 4px;
+    padding: 0 2px;
     border-radius: var(--rayon-petit);
-    font-size: 1rem;
+    font-size: .95rem;
+    letter-spacing: .01em;
   }
 
   .libelle-long {
@@ -895,6 +1073,15 @@ button {
     min-width: 64px;
     padding: 4px 8px;
     font-size: 1.25rem;
+  }
+
+  .ligne-f1 {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .carte-gp .carte-nom {
+    font-size: 1.6rem;
   }
 }
 

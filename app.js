@@ -1,5 +1,5 @@
 /* =========================================================
-   Tableau de bord foot — navigation et affichage
+   Tableau de bord sport — navigation et affichage
    ========================================================= */
 
 "use strict";
@@ -56,6 +56,37 @@ const SOUS_ONGLETS = {
   buteurs: "Buteurs"
 };
 
+// Sous-onglets de la Formule 1
+const SOUS_ONGLETS_F1 = {
+  resultats: "Résultats",
+  pilotes: "Pilotes",
+  "prochain-gp": "Prochain GP"
+};
+
+// En passant du foot à la F1 (ou l'inverse), la rubrique équivalente est gardée
+const RUBRIQUES_EQUIVALENTES = {
+  classement: "pilotes",
+  pilotes: "classement",
+  calendrier: "prochain-gp",
+  "prochain-gp": "calendrier"
+};
+
+// Les sous-onglets d'un onglet principal (null pour "Mes clubs")
+function sousOngletsDe(onglet) {
+  if (CHAMPIONNATS[onglet]) return SOUS_ONGLETS;
+  if (onglet === "f1") return SOUS_ONGLETS_F1;
+  return null;
+}
+
+// Libellé d'un sous-onglet ("Classement" devient "Phase de ligue" pour la Ligue des champions)
+function libelleSousOnglet(onglet, cle) {
+  const championnat = CHAMPIONNATS[onglet];
+  if (cle === "classement" && championnat && championnat.libelleClassement) {
+    return championnat.libelleClassement;
+  }
+  return sousOngletsDe(onglet)[cle];
+}
+
 
 /* ---------- 2. Chargement des données ---------- */
 
@@ -87,6 +118,14 @@ async function chargerTousLesChampionnats() {
   const toutes = {};
   cles.forEach((cle, i) => { toutes[cle] = resultats[i]; });
   return toutes;
+}
+
+// Données F1 (data/f1.js, mises à jour par GitHub Actions)
+function chargerF1() {
+  if (window.DONNEES_F1) {
+    return Promise.resolve(window.DONNEES_F1);
+  }
+  return Promise.reject(new Error("Données F1 introuvables."));
 }
 
 
@@ -195,10 +234,12 @@ function texteSaison(donnees) {
 // Lit l'adresse et renvoie { onglet, sousOnglet } (valeurs corrigées si besoin)
 function lireRoute() {
   const [onglet, sousOnglet] = location.hash.slice(1).split("/");
-  if (!CHAMPIONNATS[onglet]) {
+  const liste = sousOngletsDe(onglet);
+  if (!liste) {
     return { onglet: "mes-clubs", sousOnglet: null };
   }
-  return { onglet, sousOnglet: SOUS_ONGLETS[sousOnglet] ? sousOnglet : "classement" };
+  // Rubrique inconnue : la première de la liste (Classement, ou Résultats pour la F1)
+  return { onglet, sousOnglet: liste[sousOnglet] ? sousOnglet : Object.keys(liste)[0] };
 }
 
 function cheminDeRoute(route) {
@@ -239,16 +280,19 @@ async function afficher() {
     }
   });
 
-  // Sous-onglets : cachés sur "Mes clubs"
+  // Sous-onglets : cachés sur "Mes clubs", recréés à chaque changement d'onglet principal
   const championnat = CHAMPIONNATS[route.onglet];
+  const listeSousOnglets = sousOngletsDe(route.onglet);
   const navSousOnglets = document.querySelector(".sous-onglets");
-  navSousOnglets.hidden = !championnat;
+  navSousOnglets.hidden = !listeSousOnglets;
+  if (listeSousOnglets && navSousOnglets.dataset.onglet !== route.onglet) {
+    navSousOnglets.dataset.onglet = route.onglet;
+    navSousOnglets.innerHTML = Object.keys(listeSousOnglets).map((cle) =>
+      `<button type="button" class="sous-onglet" data-sous-onglet="${cle}">${echapper(libelleSousOnglet(route.onglet, cle))}</button>`
+    ).join("");
+  }
   document.querySelectorAll(".sous-onglet").forEach((bouton) => {
     const cle = bouton.dataset.sousOnglet;
-    // "Classement" devient "Phase de ligue" pour la Ligue des champions
-    bouton.textContent = cle === "classement" && championnat && championnat.libelleClassement
-      ? championnat.libelleClassement
-      : SOUS_ONGLETS[cle];
     if (cle === route.sousOnglet) {
       bouton.setAttribute("aria-current", "page");
     } else {
@@ -267,7 +311,12 @@ async function afficher() {
   const sousTitre = document.getElementById("sous-titre");
   let html;
   try {
-    if (!championnat) {
+    if (route.onglet === "f1") {
+      const donnees = await chargerF1();
+      titre.textContent = "Formule 1";
+      sousTitre.textContent = donnees.saison ? "Saison " + donnees.saison : "";
+      html = CONSTRUCTEURS_F1[route.sousOnglet](donnees);
+    } else if (!championnat) {
       titre.textContent = "Mes clubs";
       sousTitre.textContent = "Le prochain match, la forme et le classement de mes équipes";
       html = construireMesClubs(await chargerTousLesChampionnats());
@@ -288,12 +337,10 @@ async function afficher() {
 
   // Titre de l'onglet du navigateur
   const morceaux = [titre.textContent];
-  if (championnat) {
-    morceaux.push(route.sousOnglet === "classement" && championnat.libelleClassement
-      ? championnat.libelleClassement
-      : SOUS_ONGLETS[route.sousOnglet]);
+  if (listeSousOnglets) {
+    morceaux.push(libelleSousOnglet(route.onglet, route.sousOnglet));
   }
-  document.title = morceaux.join(" · ") + " — Tableau de bord foot";
+  document.title = morceaux.join(" · ") + " — Tableau de bord sport";
 }
 
 
@@ -570,18 +617,280 @@ const CONSTRUCTEURS = {
 };
 
 
-/* ---------- 7. Démarrage ---------- */
+/* ---------- 7. Écrans de la Formule 1 ---------- */
+
+// Noms des Grands Prix en français (sinon le nom anglais de l'API est gardé)
+const NOMS_GP = {
+  "Australian Grand Prix": "Grand Prix d'Australie",
+  "Chinese Grand Prix": "Grand Prix de Chine",
+  "Japanese Grand Prix": "Grand Prix du Japon",
+  "Bahrain Grand Prix": "Grand Prix de Bahreïn",
+  "Bahrain Grand Prix in Malaysia": "Grand Prix de Bahreïn (en Malaisie)",
+  "Saudi Arabian Grand Prix": "Grand Prix d'Arabie saoudite",
+  "Miami Grand Prix": "Grand Prix de Miami",
+  "Emilia Romagna Grand Prix": "Grand Prix d'Émilie-Romagne",
+  "Canadian Grand Prix": "Grand Prix du Canada",
+  "Monaco Grand Prix": "Grand Prix de Monaco",
+  "Barcelona Grand Prix": "Grand Prix de Barcelone",
+  "Spanish Grand Prix": "Grand Prix d'Espagne",
+  "Austrian Grand Prix": "Grand Prix d'Autriche",
+  "British Grand Prix": "Grand Prix de Grande-Bretagne",
+  "Belgian Grand Prix": "Grand Prix de Belgique",
+  "Hungarian Grand Prix": "Grand Prix de Hongrie",
+  "Dutch Grand Prix": "Grand Prix des Pays-Bas",
+  "Italian Grand Prix": "Grand Prix d'Italie",
+  "Azerbaijan Grand Prix": "Grand Prix d'Azerbaïdjan",
+  "Singapore Grand Prix": "Grand Prix de Singapour",
+  "United States Grand Prix": "Grand Prix des États-Unis",
+  "Mexico City Grand Prix": "Grand Prix de Mexico",
+  "Brazilian Grand Prix": "Grand Prix du Brésil",
+  "São Paulo Grand Prix": "Grand Prix de São Paulo",
+  "Las Vegas Grand Prix": "Grand Prix de Las Vegas",
+  "Qatar Grand Prix": "Grand Prix du Qatar",
+  "Abu Dhabi Grand Prix": "Grand Prix d'Abou Dhabi"
+};
+
+// Noms des pays en français
+const PAYS = {
+  Australia: "Australie", China: "Chine", Japan: "Japon", Bahrain: "Bahreïn",
+  "Saudi Arabia": "Arabie saoudite", USA: "États-Unis", Italy: "Italie", Canada: "Canada",
+  Monaco: "Monaco", Spain: "Espagne", Austria: "Autriche", UK: "Royaume-Uni",
+  Belgium: "Belgique", Hungary: "Hongrie", Netherlands: "Pays-Bas", Azerbaijan: "Azerbaïdjan",
+  Malaysia: "Malaisie", Singapore: "Singapour", Mexico: "Mexique", Brazil: "Brésil",
+  Qatar: "Qatar", UAE: "Émirats arabes unis"
+};
+
+// Nom court et couleur de chaque écurie (petite barre devant le nom du pilote)
+const ECURIES = {
+  mercedes: { nom: "Mercedes", couleur: "#00D7B6" },
+  red_bull: { nom: "Red Bull", couleur: "#4781D7" },
+  ferrari: { nom: "Ferrari", couleur: "#ED1131" },
+  mclaren: { nom: "McLaren", couleur: "#F47600" },
+  aston_martin: { nom: "Aston Martin", couleur: "#229971" },
+  alpine: { nom: "Alpine", couleur: "#00A1E8" },
+  williams: { nom: "Williams", couleur: "#1868DB" },
+  rb: { nom: "Racing Bulls", couleur: "#6C98FF" },
+  haas: { nom: "Haas", couleur: "#9C9FA2" },
+  audi: { nom: "Audi", couleur: "#E8E8E8" },
+  cadillac: { nom: "Cadillac", couleur: "#C9A227" }
+};
+
+// Les séances d'un week-end de course
+const NOMS_SEANCES = {
+  FirstPractice: "Essais libres 1",
+  SecondPractice: "Essais libres 2",
+  ThirdPractice: "Essais libres 3",
+  SprintQualifying: "Qualifications sprint",
+  Sprint: "Course sprint",
+  Qualifying: "Qualifications",
+  Race: "Course"
+};
+
+// Durée approximative d'une séance (pour savoir si elle est en cours ou terminée)
+const UNE_HEURE = 3600000;
+function dureeSeance(type) {
+  return type === "Race" ? 2 * UNE_HEURE : UNE_HEURE;
+}
+
+function nomGP(course) {
+  return NOMS_GP[course.nom] || course.nom;
+}
+
+// "Marina Bay Street Circuit · Marina Bay, Singapour"
+function lieuGP(course) {
+  const pays = PAYS[course.pays] || course.pays;
+  return course.circuit + " · " + [course.ville, pays].filter(Boolean).join(", ");
+}
+
+// Nom de l'écurie, précédé d'une barre à sa couleur
+function htmlEcurie(ecurie) {
+  if (!ecurie) return "";
+  const infos = ECURIES[ecurie.id] || {};
+  const nom = infos.nom || ecurie.nom.replace(/ F1 Team$/, "");
+  return `<span class="barre-ecurie" style="--couleur-ecurie:${infos.couleur || "#8A94A6"}"></span>${echapper(nom)}`;
+}
+
+// 25 -> "25 pts", 1 -> "1 pt"
+function textePoints(points) {
+  return points + (points > 1 ? " pts" : " pt");
+}
+
+// Une date sans heure ("2026-10-25") : l'horaire n'est pas encore connu
+function sansHeure(iso) {
+  return iso.length === 10;
+}
+
+// Temps ou écart du pilote, ou raison de son abandon
+function ecartPilote(resultat, toursVainqueur) {
+  switch (resultat.statut) {
+    case "Finished":
+      return resultat.temps || "";
+    case "Lapped": {
+      const tours = toursVainqueur - resultat.tours;
+      return "+" + tours + (tours > 1 ? " tours" : " tour");
+    }
+    case "Retired":
+      return "Abandon";
+    case "Disqualified":
+      return "Disqualifié";
+    case "Did not start":
+      return "Non partant";
+    default:
+      return resultat.statut || "";
+  }
+}
+
+// Résultats : le classement de la dernière course
+function construireResultatsF1(donnees) {
+  const course = donnees.derniereCourse;
+  if (!course || course.resultats.length === 0) {
+    return '<p class="message">Aucune course disputée pour le moment.</p>';
+  }
+  const toursVainqueur = course.resultats[0].tours;
+
+  const lignes = course.resultats.map((r) => {
+    // "R" (abandon), "D" (disqualifié)... : pilote non classé
+    const classe = /^\d+$/.test(r.position);
+    const podium = classe && Number(r.position) <= 3;
+    return `
+      <li class="ligne-f1${podium ? " podium" : ""}${classe ? "" : " non-classe"}">
+        <span class="rang">${classe ? r.position : "–"}</span>
+        <span>
+          <span class="joueur-nom">${echapper(r.pilote.nom)}</span>
+          <span class="joueur-club">${htmlEcurie(r.ecurie)}</span>
+        </span>
+        <span class="droite-f1">
+          <span class="ecart">${echapper(ecartPilote(r, toursVainqueur))}</span>
+          ${r.points > 0 ? `<span class="points-course">+${textePoints(r.points)}</span>` : ""}
+        </span>
+      </li>`;
+  }).join("");
+
+  return `
+    <section class="bloc-f1">
+      <header class="entete-gp">
+        <span class="lieu">Manche ${course.manche}</span>
+        <h2 class="groupe-titre">${echapper(nomGP(course))}</h2>
+        <p class="date-match">${echapper(formaterJourLong(course.date))} · ${echapper(lieuGP(course))}</p>
+      </header>
+      <ol class="liste-f1">${lignes}</ol>
+    </section>`;
+}
+
+// Pilotes : le classement du championnat
+function construirePilotes(donnees) {
+  const lignes = donnees.classementPilotes || [];
+  if (lignes.length === 0) {
+    return '<p class="message">Classement disponible après la première course.</p>';
+  }
+  const html = lignes.map((l) => {
+    const victoires = l.victoires > 0
+      ? ` · ${l.victoires} ${l.victoires > 1 ? "victoires" : "victoire"}`
+      : "";
+    return `
+      <li class="ligne-f1">
+        <span class="rang">${echapper(l.position)}</span>
+        <span>
+          <span class="joueur-nom">${echapper(l.pilote.nom)}</span>
+          <span class="joueur-club">${htmlEcurie(l.ecurie)}${victoires}</span>
+        </span>
+        <span class="buts">${l.points}<small>${l.points > 1 ? "pts" : "pt"}</small></span>
+      </li>`;
+  }).join("");
+  return `<ol class="liste-f1">${html}</ol>`;
+}
+
+// Le prochain Grand Prix : le premier dont la course n'est pas encore finie
+function prochainGP(calendrier) {
+  const maintenant = Date.now();
+  return calendrier.find((c) => new Date(c.date).getTime() + dureeSeance("Race") > maintenant);
+}
+
+// Prochain GP : présentation et programme du week-end
+function construireProchainGP(donnees) {
+  const calendrier = donnees.calendrier || [];
+  const gp = prochainGP(calendrier);
+  if (!gp) {
+    return '<p class="message">Saison terminée : rendez-vous l\'an prochain !</p>';
+  }
+  const maintenant = Date.now();
+  const courseCommencee = new Date(gp.date).getTime() <= maintenant;
+  const sprint = gp.seances.some((s) => s.type === "Sprint");
+
+  // Séances dans l'ordre, avec leur état
+  const seances = [...gp.seances].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const suivante = seances.find((s) => new Date(s.date).getTime() > maintenant);
+
+  const parJour = grouper(seances, (s) => new Date(s.date).toDateString());
+  const programme = parJour.map(([, seancesDuJour]) => {
+    const lignes = seancesDuJour.map((s) => {
+      const debut = new Date(s.date).getTime();
+      let etat = "";
+      let droite;
+      if (sansHeure(s.date)) {
+        droite = '<span class="seance-heure seance-inconnue">Horaire à confirmer</span>';
+      } else if (debut + dureeSeance(s.type) < maintenant) {
+        etat = " seance-passee";
+        droite = '<span class="seance-heure">Terminée</span>';
+      } else if (debut <= maintenant) {
+        etat = " seance-en-cours";
+        droite = '<span class="seance-heure">En cours</span>';
+      } else {
+        droite = `<span class="seance-heure">${formatHeure.format(new Date(s.date))}</span>`;
+      }
+      if (s === suivante) etat += " seance-suivante";
+      if (s.type === "Race") etat += " seance-course";
+      return `
+        <li class="seance${etat}">
+          <span class="seance-nom">${NOMS_SEANCES[s.type] || echapper(s.type)}</span>
+          ${droite}
+        </li>`;
+    }).join("");
+    return `
+      <h3 class="jour-titre">${echapper(formaterJourLong(seancesDuJour[0].date))}</h3>
+      <ul class="liste-seances">${lignes}</ul>`;
+  }).join("");
+
+  return `
+    <section class="bloc-f1">
+      <article class="carte carte-gp">
+        <div>
+          <span class="lieu">Manche ${gp.manche} / ${calendrier.length}</span>
+          ${sprint ? '<span class="lieu">Week-end sprint</span>' : ""}
+          <h2 class="carte-nom">${echapper(nomGP(gp))}</h2>
+          <p class="date-match">${echapper(lieuGP(gp))}</p>
+        </div>
+        <span class="compte-a-rebours">${courseCommencee ? "En course" : texteCompteARebours(joursRestants(gp.date))}</span>
+      </article>
+      ${programme}
+      <p class="legende-forme">Horaires à l'heure de ton appareil (heure française en France).</p>
+    </section>`;
+}
+
+// Quel écran construire pour chaque sous-onglet F1
+const CONSTRUCTEURS_F1 = {
+  resultats: construireResultatsF1,
+  pilotes: construirePilotes,
+  "prochain-gp": construireProchainGP
+};
+
+
+/* ---------- 8. Démarrage ---------- */
 
 // Clic sur un onglet principal : on garde la même rubrique (Classement, Buteurs...) d'un championnat à l'autre
 document.querySelector(".onglets").addEventListener("click", (evenement) => {
   const bouton = evenement.target.closest("[data-onglet]");
   if (!bouton) return;
   const onglet = bouton.dataset.onglet;
-  if (onglet === "mes-clubs") {
+  const liste = sousOngletsDe(onglet);
+  if (!liste) {
     aller("mes-clubs");
-  } else {
-    aller(onglet + "/" + (lireRoute().sousOnglet || "classement"));
+    return;
   }
+  // Rubrique actuelle, ou son équivalent (Classement <-> Pilotes...), sinon la première
+  let rubrique = lireRoute().sousOnglet;
+  if (!liste[rubrique]) rubrique = RUBRIQUES_EQUIVALENTES[rubrique];
+  aller(onglet + "/" + (liste[rubrique] ? rubrique : Object.keys(liste)[0]));
 });
 
 // Clic sur un sous-onglet

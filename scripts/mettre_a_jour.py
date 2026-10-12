@@ -1,5 +1,6 @@
 """
-Télécharge les données de football-data.org et les enregistre dans data/donnees.js.
+Télécharge les données de football-data.org et les enregistre dans data/donnees.js,
+puis celles de la F1 (API Jolpica, sans clé) dans data/f1.js.
 
 Lancé automatiquement par GitHub Actions (voir .github/workflows/mise-a-jour.yml).
 La clé d'API est lue dans la variable d'environnement FOOTBALL_DATA_KEY :
@@ -114,30 +115,170 @@ def telecharger_competition(code, cle):
     }
 
 
-def main():
-    cle = os.environ.get("FOOTBALL_DATA_KEY")
-    if not cle:
-        # Pas d'échec (donc pas d'e-mail d'erreur) tant que la clé n'est pas configurée
-        print("::warning::Clé FOOTBALL_DATA_KEY absente : rien n'est mis à jour.")
-        return
-
-    donnees = {code: telecharger_competition(code, cle) for code in COMPETITIONS}
-
+def enregistrer(chemin, nom_variable, donnees):
+    """Écrit les données dans un fichier .js lu par la page (window.<nom_variable> = ...)."""
     contenu = (
         "/* Fichier généré automatiquement par scripts/mettre_a_jour.py : ne pas modifier à la main. */\n"
-        "window.DONNEES_API = "
+        f"window.{nom_variable} = "
         # Écriture compacte (sans espaces) : fichier plus léger à télécharger
         + json.dumps(donnees, ensure_ascii=False, separators=(",", ":"))
         + ";\n"
     )
-    with open(FICHIER_SORTIE, "w", encoding="utf-8", newline="\n") as fichier:
+    with open(chemin, "w", encoding="utf-8", newline="\n") as fichier:
         fichier.write(contenu)
-    print(f"Données enregistrées dans data/donnees.js ({len(contenu) // 1024} Ko).")
+    print(f"Données enregistrées dans data/{os.path.basename(chemin)} ({len(contenu) // 1024} Ko).")
+
+
+def mettre_a_jour_foot():
+    cle = os.environ.get("FOOTBALL_DATA_KEY")
+    if not cle:
+        # Pas d'échec (donc pas d'e-mail d'erreur) tant que la clé n'est pas configurée
+        print("::warning::Clé FOOTBALL_DATA_KEY absente : le foot n'est pas mis à jour.")
+        return
+
+    donnees = {code: telecharger_competition(code, cle) for code in COMPETITIONS}
+    enregistrer(FICHIER_SORTIE, "DONNEES_API", donnees)
+
+
+# ---------- Formule 1 (API Jolpica, gratuite et sans clé) ----------
+
+ADRESSE_API_F1 = "https://api.jolpi.ca/ergast/f1/current"
+
+FICHIER_SORTIE_F1 = os.path.join(os.path.dirname(__file__), "..", "data", "f1.js")
+
+# Les séances d'un week-end, dans le vocabulaire de l'API
+SEANCES_F1 = ["FirstPractice", "SecondPractice", "ThirdPractice",
+              "SprintQualifying", "Sprint", "Qualifying"]
+
+
+def appeler_f1(chemin):
+    """Appelle l'API F1 et renvoie la partie utile de la réponse ("MRData")."""
+    with urllib.request.urlopen(ADRESSE_API_F1 + chemin + ".json?limit=100", timeout=30) as reponse:
+        donnees = json.load(reponse)
+    time.sleep(1)  # politesse : l'API limite le nombre d'appels par seconde
+    return donnees["MRData"]
+
+
+def date_iso(objet):
+    """"2026-10-11" + "12:00:00Z" -> "2026-10-11T12:00:00Z" (date seule si l'heure est inconnue)."""
+    if objet.get("time"):
+        return objet["date"] + "T" + objet["time"]
+    return objet["date"]
+
+
+def nombre(texte):
+    """"25" -> 25, "0.5" -> 0.5 (les points peuvent être des demi-points)."""
+    valeur = float(texte or 0)
+    return int(valeur) if valeur.is_integer() else valeur
+
+
+def course_simplifiee(course):
+    """Les informations d'un Grand Prix communes au résultat et au calendrier."""
+    lieu = course["Circuit"]["Location"]
+    return {
+        "manche": int(course["round"]),
+        "nom": course["raceName"],
+        "circuit": course["Circuit"]["circuitName"],
+        "ville": lieu.get("locality"),
+        "pays": lieu.get("country"),
+        "date": date_iso(course),
+    }
+
+
+def pilote_simplifie(pilote):
+    return {
+        "nom": pilote["givenName"] + " " + pilote["familyName"],
+        "code": pilote.get("code"),
+    }
+
+
+def ecurie_simplifiee(ecurie):
+    return {"id": ecurie["constructorId"], "nom": ecurie["name"]}
+
+
+def telecharger_f1():
+    """Dernière course, classement des pilotes et calendrier de la saison en cours."""
+    print("Téléchargement de la F1...")
+    derniere = appeler_f1("/last/results")["RaceTable"]
+    classement = appeler_f1("/driverStandings")["StandingsTable"]
+    calendrier = appeler_f1("/races")["RaceTable"]
+
+    # Dernière course (vide en tout début de saison)
+    derniere_course = None
+    if derniere["Races"]:
+        course = derniere["Races"][0]
+        derniere_course = course_simplifiee(course)
+        derniere_course["resultats"] = [
+            {
+                "position": r["positionText"],  # "1", "2"... ou "R" (abandon), "D" (disqualifié)
+                "pilote": pilote_simplifie(r["Driver"]),
+                "ecurie": ecurie_simplifiee(r["Constructor"]),
+                "tours": int(r.get("laps") or 0),
+                "statut": r.get("status"),
+                "temps": (r.get("Time") or {}).get("time"),
+                "points": nombre(r.get("points")),
+            }
+            for r in course["Results"]
+        ]
+
+    # Écurie de chaque pilote lors de la dernière course
+    ecurie_actuelle = {}
+    if derniere["Races"]:
+        for r in derniere["Races"][0]["Results"]:
+            ecurie_actuelle[r["Driver"]["driverId"]] = ecurie_simplifiee(r["Constructor"])
+
+    # Classement des pilotes (vide avant la première course)
+    lignes = []
+    if classement["StandingsLists"]:
+        for ligne in classement["StandingsLists"][0]["DriverStandings"]:
+            # Un pilote qui a changé d'écurie en cours de saison a plusieurs écuries,
+            # dans un ordre quelconque : on prend celle de la dernière course
+            ecuries = ligne.get("Constructors") or []
+            ecurie = ecurie_actuelle.get(ligne["Driver"]["driverId"])
+            if not ecurie and ecuries:
+                ecurie = ecurie_simplifiee(ecuries[-1])
+            lignes.append({
+                "position": ligne.get("positionText") or ligne.get("position"),
+                "pilote": pilote_simplifie(ligne["Driver"]),
+                "ecurie": ecurie,
+                "victoires": int(ligne.get("wins") or 0),
+                "points": nombre(ligne.get("points")),
+            })
+
+    # Calendrier complet : la page choisit elle-même le prochain Grand Prix
+    courses = []
+    for course in calendrier["Races"]:
+        infos = course_simplifiee(course)
+        infos["seances"] = [
+            {"type": seance, "date": date_iso(course[seance])}
+            for seance in SEANCES_F1 if seance in course
+        ] + [{"type": "Race", "date": infos["date"]}]
+        courses.append(infos)
+
+    return {
+        "saison": calendrier.get("season"),
+        "derniereCourse": derniere_course,
+        "classementPilotes": lignes,
+        "calendrier": courses,
+    }
+
+
+def mettre_a_jour_f1():
+    enregistrer(FICHIER_SORTIE_F1, "DONNEES_F1", telecharger_f1())
+
+
+def main():
+    # Le foot et la F1 sont indépendants : une panne de l'un n'empêche pas l'autre
+    erreurs = 0
+    for mise_a_jour in (mettre_a_jour_foot, mettre_a_jour_f1):
+        try:
+            mise_a_jour()
+        except (urllib.error.URLError, KeyError, ValueError) as erreur:
+            print(f"::error::{mise_a_jour.__name__} : {erreur}")
+            erreurs += 1
+    if erreurs:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except urllib.error.HTTPError as erreur:
-        print(f"Erreur de l'API : {erreur.code} {erreur.reason}")
-        sys.exit(1)
+    main()
